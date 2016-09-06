@@ -9,6 +9,7 @@ using namespace std;
 
 //函数声明
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+void DrawLine(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //综合版画线函数
 void Triangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画三角形函数
 void Sexangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画六边形函数
 void Pentagram(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画五角星函数
@@ -229,8 +230,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SetROP2(hDC, R2_NOT);	      //防止重影
 			if (fDrawLine)
 			{
-				MoveToEx(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, NULL);
-				LineTo(hDC, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawRectangle)
 			{
@@ -260,8 +260,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			pCurrentData->ptEndY = HIWORD(lParam);
 			if (fDrawLine)
 			{
-				MoveToEx(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, NULL);
-				LineTo(hDC, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawRectangle)
 			{
@@ -334,8 +333,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (item->shape)    //图形选择
 			{
 			case 1:
-				MoveToEx(hDC, item->ptBeginX, item->ptBeginY, NULL);
-				LineTo(hDC, item->ptEndX, item->ptEndY);
+				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 				break;
 			case 2:
 				Rectangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
@@ -365,6 +363,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void DrawLine(HDC hDC, int BeginX, int BeginY, int EndX, int EndY)
+{
+	MoveToEx(hDC, BeginX, BeginY, NULL);
+	LineTo(hDC, EndX, EndY);
 }
 
 //画三角形函数
