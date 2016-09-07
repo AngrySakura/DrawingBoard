@@ -29,63 +29,6 @@ BOOL fSizePentagram;
 BOOL fDrawPentagram;
 
 /*-------------------------------------------------------------------
-名称：WinMain
-功能：窗口
--------------------------------------------------------------------*/
-int WINAPI WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE PreInstance,
-	LPSTR lpCmdLine,
-	int nCmdShow)
-{
-	HWND hWnd;   //定义窗口句柄
-	MSG msg;   //储存消息的变量
-	WNDCLASS wc;   //定义窗口类型变量
-
-	wc.style = CS_OWNDC;
-	wc.lpfnWndProc = (WNDPROC)WndProc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
-	wc.lpszClassName = L"SHAPE";
-
-	if (!RegisterClass(&wc))
-	{
-		return (FALSE);
-	}
-	//创建窗口
-	hWnd = CreateWindow(
-		L"SHAPE",
-		L"SHAPE",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0,
-		NULL,
-		NULL,
-		hInstance,
-		NULL);
-
-	if (!hWnd)
-	{
-		return (FALSE);
-	}
-	//显示更新
-	ShowWindow(hWnd, nCmdShow);
-	UpdateWindow(hWnd);
-
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
-	return (int)msg.wParam;
-	UNREFERENCED_PARAMETER(lpCmdLine);
-}
-
-/*-------------------------------------------------------------------
 名称：WndProc
 功能：消息处理
 -------------------------------------------------------------------*/
@@ -183,6 +126,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			hDC = GetDC(hWnd);
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			SetROP2(hDC, R2_NOT);	      //防止重影
+			//根据draw状态判断鼠标移动过程中是否要画图
 			if (fDrawLine)
 			{
 				paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
@@ -211,6 +155,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
+		    //实时监听鼠标落点并不断更新
 			pCurrentData->ptEndX = LOWORD(lParam);
 			pCurrentData->ptEndY = HIWORD(lParam);
 			if (fDrawLine)
@@ -274,13 +219,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			pCurrentData->ptEndX = LOWORD(lParam);
 			pCurrentData->ptEndY = HIWORD(lParam);
 			InvalidateRect(hWnd, NULL, true);
-			datas.push_back(*pCurrentData);           //保存这一个图形
+			datas.push_back(*pCurrentData);           //将数据传入vector容器，保存这一个图形
 		}
 		break;
-	case WM_PAINT:
+	case WM_PAINT:                      //缓冲重绘
 		BeginPaint(hWnd, &ps);
 		//将所有图形重新画一遍  
-		for (item = datas.begin(); item != datas.end(); item++)
+		for (item = datas.begin(); item != datas.end(); item++)          //迭代器遍历
 		{
 			hDC = GetDC(hWnd);
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
@@ -320,6 +265,64 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+/*-------------------------------------------------------------------
+名称：WinMain
+功能：窗口
+-------------------------------------------------------------------*/
+int WINAPI WinMain(
+	HINSTANCE hInstance,
+	HINSTANCE PreInstance,
+	LPSTR lpCmdLine,
+	int nCmdShow)
+{
+	HWND hWnd;   //定义窗口句柄
+	MSG msg;   //储存消息的变量
+	WNDCLASS wc;   //定义窗口类型变量
+
+	wc.style = CS_OWNDC;
+	wc.lpfnWndProc = (WNDPROC)WndProc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hInstance = hInstance;
+	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
+	wc.lpszClassName = L"SHAPE";
+
+	if (!RegisterClass(&wc))
+	{
+		return (FALSE);
+	}
+	//创建窗口
+	hWnd = CreateWindow(
+		L"SHAPE",
+		L"SHAPE",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0,
+		NULL,
+		NULL,
+		hInstance,
+		NULL);
+
+	if (!hWnd)
+	{
+		return (FALSE);
+	}
+	//显示更新
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return (int)msg.wParam;
+	UNREFERENCED_PARAMETER(lpCmdLine);
+}
+
+//初始化菜单图形状态函数
 void InitShape()
 {
 	fSizeLine = FALSE;
