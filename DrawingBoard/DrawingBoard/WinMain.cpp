@@ -4,16 +4,14 @@
 #include<Windows.h>
 #include<vector>
 #include"resource.h"
+#include"data.h"
+#include"function.h"
 
 using namespace std;
 
 //函数声明
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-void DrawLine(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //综合版画线函数
-void Triangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画三角形函数
-void Sexangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画六边形函数
-void Pentagram(HDC hDC, int BeginX, int BeginY, int EndX, int EndY);  //画五角星函数
-
+void InitShape();
 																	  //全局变量
 BOOL fSizeLine;
 BOOL fDrawLine;
@@ -29,15 +27,6 @@ BOOL fSizeSexangle;
 BOOL fDrawSexangle;
 BOOL fSizePentagram;
 BOOL fDrawPentagram;
-
-//每个图形的数据结构
-typedef struct tagData
-{
-	int ptBeginX, ptBeginY;//起点  
-	int ptEndX, ptEndY;//终点  
-	int nEllipseWidth, nEllipseHeight;//画圆角矩形时椭圆的高和宽
-	BOOL shape; //图形的形状
-} PAINTDATA;
 
 /*-------------------------------------------------------------------
 名称：WinMain
@@ -102,6 +91,7 @@ int WINAPI WinMain(
 -------------------------------------------------------------------*/
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	PAINTSHAPE paint;
 	static vector<PAINTDATA> datas;
 	vector<PAINTDATA>::const_iterator item;
 	static int penStyle = PS_SOLID;
@@ -115,66 +105,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wParam)
 		{
 		case ID_LINE:
+			InitShape();
 			fSizeLine = TRUE;
-			fSizeRectangle = FALSE;
-			fSizeEllipse = FALSE;
-			fSizeRoundRect = FALSE;
-			fSizeTriangle = FALSE;
-			fSizeSexangle = FALSE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_RECTANGLE:
-			fSizeLine = FALSE;
+			InitShape();
 			fSizeRectangle = TRUE;
-			fSizeEllipse = FALSE;
-			fSizeRoundRect = FALSE;
-			fSizeTriangle = FALSE;
-			fSizeSexangle = FALSE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_ELLIPSE:
-			fSizeLine = FALSE;
-			fSizeRectangle = FALSE;
+			InitShape();
 			fSizeEllipse = TRUE;
-			fSizeRoundRect = FALSE;
-			fSizeTriangle = FALSE;
-			fSizeSexangle = FALSE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_ROUNDRECT:
-			fSizeLine = FALSE;
-			fSizeRectangle = FALSE;
-			fSizeEllipse = FALSE;
+			InitShape();
 			fSizeRoundRect = TRUE;
-			fSizeTriangle = FALSE;
-			fSizeSexangle = FALSE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_TRIANGLE:
-			fSizeLine = FALSE;
-			fSizeRectangle = FALSE;
-			fSizeEllipse = FALSE;
-			fSizeRoundRect = FALSE;
+			InitShape();
 			fSizeTriangle = TRUE;
-			fSizeSexangle = FALSE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_SEXANGLE:
-			fSizeLine = FALSE;
-			fSizeRectangle = FALSE;
-			fSizeEllipse = FALSE;
-			fSizeRoundRect = FALSE;
-			fSizeTriangle = FALSE;
+			InitShape();
 			fSizeSexangle = TRUE;
-			fSizePentagram = FALSE;
 			break;
 		case ID_PENTAGRAM:
-			fSizeLine = FALSE;
-			fSizeRectangle = FALSE;
-			fSizeEllipse = FALSE;
-			fSizeRoundRect = FALSE;
-			fSizeTriangle = FALSE;
-			fSizeSexangle = FALSE;
+			InitShape();
 			fSizePentagram = TRUE;
 			break;
 		default:
@@ -230,7 +185,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SetROP2(hDC, R2_NOT);	      //防止重影
 			if (fDrawLine)
 			{
-				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawRectangle)
 			{
@@ -246,21 +201,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			if (fDrawTriangle)
 			{
-				Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawSexangle)
 			{
-				Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawPentagram)
 			{
-				Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			pCurrentData->ptEndX = LOWORD(lParam);
 			pCurrentData->ptEndY = HIWORD(lParam);
 			if (fDrawLine)
 			{
-				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawRectangle)
 			{
@@ -276,15 +231,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			if (fDrawTriangle)
 			{
-				Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawSexangle)
 			{
-				Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			if (fDrawPentagram)
 			{
-				Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
 			}
 			ReleaseDC(hWnd, hDC);
 		}
@@ -333,7 +288,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			switch (item->shape)    //图形选择
 			{
 			case 1:
-				DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				paint.DrawLine(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
 				break;
 			case 2:
 				Rectangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
@@ -345,13 +300,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				RoundRect(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY, item->nEllipseWidth, item->nEllipseHeight);
 				break;
 			case 5:
-				Triangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
+				paint.Triangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
 				break;
 			case 6:
-				Sexangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
+				paint.Sexangle(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
 				break;
 			case 7:
-				Pentagram(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
+				paint.Pentagram(hDC, item->ptBeginX, item->ptBeginY, item->ptEndX, item->ptEndY);
 				break;
 			}
 			ReleaseDC(hWnd, hDC);
@@ -365,80 +320,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-void DrawLine(HDC hDC, int BeginX, int BeginY, int EndX, int EndY)
+void InitShape()
 {
-	MoveToEx(hDC, BeginX, BeginY, NULL);
-	LineTo(hDC, EndX, EndY);
-}
-
-//画三角形函数
-void Triangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY)
-{
-	//画底边
-	MoveToEx(hDC, BeginX, EndY, NULL);
-	LineTo(hDC, EndX, EndY);
-	//画左斜边
-	MoveToEx(hDC, BeginX, EndY, NULL);
-	LineTo(hDC, (BeginX + EndX) / 2, BeginY);
-	//画右斜边
-	MoveToEx(hDC, EndX, EndY, NULL);
-	LineTo(hDC, (BeginX + EndX) / 2, BeginY);
-}
-
-//画六边形函数
-void Sexangle(HDC hDC, int BeginX, int BeginY, int EndX, int EndY)
-{
-	//逆时针将六点连线画出六边形
-	MoveToEx(hDC, (3 * BeginX + EndX) / 4, BeginY, NULL);
-	LineTo(hDC, BeginX, (BeginY + EndY) / 2);
-
-	MoveToEx(hDC, BeginX, (BeginY + EndY) / 2, NULL);
-	LineTo(hDC, (3 * BeginX + EndX) / 4, EndY);
-
-	MoveToEx(hDC, (3 * BeginX + EndX) / 4, EndY, NULL);
-	LineTo(hDC, (BeginX + 3 * EndX) / 4, EndY);
-
-	MoveToEx(hDC, (BeginX + 3 * EndX) / 4, EndY, NULL);
-	LineTo(hDC, EndX, (BeginY + EndY) / 2);
-
-	MoveToEx(hDC, EndX, (BeginY + EndY) / 2, NULL);
-	LineTo(hDC, (BeginX + 3 * EndX) / 4, BeginY);
-
-	MoveToEx(hDC, (BeginX + 3 * EndX) / 4, BeginY, NULL);
-	LineTo(hDC, (3 * BeginX + EndX) / 4, BeginY);
-}
-
-//画五角星函数
-void Pentagram(HDC hDC, int BeginX, int BeginY, int EndX, int EndY)
-{
-	//逆时针依次画出十条边
-	MoveToEx(hDC, (BeginX + EndX) / 2, BeginY, NULL);
-	LineTo(hDC, (3 * BeginX + 2 * EndX) / 5, (3 * BeginY + 2 * EndY) / 5);
-
-	MoveToEx(hDC, (3 * BeginX + 2 * EndX) / 5, (3 * BeginY + 2 * EndY) / 5, NULL);
-	LineTo(hDC, BeginX, (3 * BeginY + 2 * EndY) / 5);
-
-	MoveToEx(hDC, BeginX, (3 * BeginY + 2 * EndY) / 5, NULL);
-	LineTo(hDC, (7 * BeginX + 3 * EndX) / 10, (2 * BeginY + 3 * EndY) / 5);
-
-	MoveToEx(hDC, (7 * BeginX + 3 * EndX) / 10, (2 * BeginY + 3 * EndY) / 5, NULL);
-	LineTo(hDC, (4 * BeginX + EndX) / 5, EndY);
-
-	MoveToEx(hDC, (4 * BeginX + EndX) / 5, EndY, NULL);
-	LineTo(hDC, (BeginX + EndX) / 2, (3 * BeginY + 7 * EndY) / 10);
-
-	MoveToEx(hDC, (BeginX + EndX) / 2, (3 * BeginY + 7 * EndY) / 10, NULL);
-	LineTo(hDC, (BeginX + 4 * EndX) / 5, EndY);
-
-	MoveToEx(hDC, (BeginX + 4 * EndX) / 5, EndY, NULL);
-	LineTo(hDC, (3 * BeginX + 7 * EndX) / 10, (2 * BeginY + 3 * EndY) / 5);
-
-	MoveToEx(hDC, (3 * BeginX + 7 * EndX) / 10, (2 * BeginY + 3 * EndY) / 5, NULL);
-	LineTo(hDC, EndX, (3 * BeginY + 2 * EndY) / 5);
-
-	MoveToEx(hDC, EndX, (3 * BeginY + 2 * EndY) / 5, NULL);
-	LineTo(hDC, (2 * BeginX + 3 * EndX) / 5, (3 * BeginY + 2 * EndY) / 5);
-
-	MoveToEx(hDC, (2 * BeginX + 3 * EndX) / 5, (3 * BeginY + 2 * EndY) / 5, NULL);
-	LineTo(hDC, (BeginX + EndX) / 2, BeginY);
+	fSizeLine = FALSE;
+	fSizeRectangle = FALSE;
+	fSizeEllipse = FALSE;
+	fSizeRoundRect = FALSE;
+	fSizeTriangle = FALSE;
+	fSizeSexangle = FALSE;
+	fSizePentagram = FALSE;
 }
