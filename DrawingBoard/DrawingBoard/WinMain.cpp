@@ -2,6 +2,8 @@
 功能：绘制指定图形
 --------------------------------------------------------------------*/
 #include<Windows.h>
+#include "Windowsx.h"
+#include <tchar.h>
 #include<vector>
 #include"resource.h"
 #include"data.h"
@@ -28,6 +30,11 @@ BOOL fDrawSexangle;
 BOOL fSizePentagram;
 BOOL fDrawPentagram;
 
+BOOL IsMove;    //判断是否需要移动图形
+BOOL Move;
+int movecount = 0;                       //通过该变量的奇偶性来记录点击移动菜单的次数,从而决定是否移动
+int rectshape = 0;
+
 /*-------------------------------------------------------------------
 名称：WndProc
 功能：消息处理
@@ -37,189 +44,377 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSHAPE paint;
 	static vector<PAINTDATA> datas;
 	vector<PAINTDATA>::const_iterator item;
+	vector<PAINTDATA>::iterator deletion;
 	static int penStyle = PS_SOLID;
-	static PAINTDATA *pCurrentData = NULL;//指向当前PAINTDATA的指针
+	static PAINTDATA *pCurrentData = NULL;   //指向当前PAINTDATA的指针
 	HDC hDC;
 	PAINTSTRUCT	ps;
+	static POINT ptOld, ptNew;
+	static RECT rectOld, rectLast, rectMove, rectNew;
 
 	switch (message)
 	{
-	case WM_COMMAND:    //点击菜单选择决定要画的图形
+	case WM_COMMAND:                         //点击菜单选择决定要画的图形
 		switch (wParam)
 		{
 		case ID_LINE:
 			InitShape();
 			fSizeLine = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_RECTANGLE:
 			InitShape();
 			fSizeRectangle = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_ELLIPSE:
 			InitShape();
 			fSizeEllipse = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_ROUNDRECT:
 			InitShape();
 			fSizeRoundRect = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_TRIANGLE:
 			InitShape();
 			fSizeTriangle = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_SEXANGLE:
 			InitShape();
 			fSizeSexangle = TRUE;
+			IsMove = FALSE;
 			break;
 		case ID_PENTAGRAM:
 			InitShape();
 			fSizePentagram = TRUE;
+			IsMove = FALSE;
+			break;
+		case ID_MOVE:
+			if (movecount % 2 == 0)
+			{
+				IsMove = TRUE;
+				movecount++;
+			}
+			else
+			{
+				IsMove = FALSE;
+				movecount++;
+			}
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
 	case WM_LBUTTONDOWN:
-		pCurrentData = new PAINTDATA;                 //获取起始位置的坐标并初始化数据
-		pCurrentData->ptBeginX = pCurrentData->ptEndX = LOWORD(lParam);
-		pCurrentData->ptBeginY = pCurrentData->ptEndY = HIWORD(lParam);
-		pCurrentData->nEllipseHeight = pCurrentData->nEllipseWidth = 30;
-		if (fSizeLine)
+		if (IsMove)                        //如果“移动菜单”状态为开
 		{
-			fDrawLine = TRUE;
-			pCurrentData->shape = 1;
+			ptOld.x = LOWORD(lParam);
+			ptOld.y = HIWORD(lParam);
+			for (item = datas.begin(); item != datas.end(); item++)
+			{
+				rectOld.left = item->ptBeginX;
+				rectOld.top = item->ptBeginY;
+				rectOld.right = item->ptEndX;
+				rectOld.bottom = item->ptEndY;
+				rectshape = item->shape;
+	            if (PtInRect(&rectOld,ptOld))
+		        {
+		            Move = TRUE;
+		            break;
+		        }
+		        else
+		        {
+		            Move = FALSE;
+		        }
+			}
 		}
-		if (fSizeRectangle)
+		else                        // 如果“移动菜单”状态为闭
 		{
-			fDrawRectangle = TRUE;
-			pCurrentData->shape = 2;
-		}
-		if (fSizeEllipse)
-		{
-			fDrawEllipse = TRUE;
-			pCurrentData->shape = 3;
-		}
-		if (fSizeRoundRect)
-		{
-			fDrawRoundRect = TRUE;
-			pCurrentData->shape = 4;
-		}
-		if (fSizeTriangle)
-		{
-			fDrawTriangle = TRUE;
-			pCurrentData->shape = 5;
-		}
-		if (fSizeSexangle)
-		{
-			fDrawSexangle = TRUE;
-			pCurrentData->shape = 6;
-		}
-		if (fSizePentagram)
-		{
-			fDrawPentagram = TRUE;
-			pCurrentData->shape = 7;
+			pCurrentData = new PAINTDATA;                 //获取起始位置的坐标并初始化数据
+			pCurrentData->ptBeginX = pCurrentData->ptEndX = LOWORD(lParam);
+			pCurrentData->ptBeginY = pCurrentData->ptEndY = HIWORD(lParam);
+			pCurrentData->nEllipseHeight = pCurrentData->nEllipseWidth = 30;
+			if (fSizeLine)
+			{
+				fDrawLine = TRUE;
+				pCurrentData->shape = 1;
+			}
+			if (fSizeRectangle)
+			{
+				fDrawRectangle = TRUE;
+				pCurrentData->shape = 2;
+			}
+			if (fSizeEllipse)
+			{
+				fDrawEllipse = TRUE;
+				pCurrentData->shape = 3;
+			}
+			if (fSizeRoundRect)
+			{
+				fDrawRoundRect = TRUE;
+				pCurrentData->shape = 4;
+			}
+			if (fSizeTriangle)
+			{
+				fDrawTriangle = TRUE;
+				pCurrentData->shape = 5;
+			}
+			if (fSizeSexangle)
+			{
+				fDrawSexangle = TRUE;
+				pCurrentData->shape = 6;
+			}
+			if (fSizePentagram)
+			{
+				fDrawPentagram = TRUE;
+				pCurrentData->shape = 7;
+			}
 		}
 		break;
-	case WM_MOUSEMOVE:                                //在鼠标移动过程中动态显示要画的图形,
-		if (pCurrentData != NULL)
+	case WM_MOUSEMOVE:    //在鼠标移动过程中动态显示要画的图形
+		//如果处于移动状态
+		if (Move)
 		{
+			//鼠标移动画边框
+			POINT ptMove;
+			ptMove.x = LOWORD(lParam);
+			ptMove.y = HIWORD(lParam);
+			//用移动过程中的鼠标位置计算图形信息
+			rectMove.left = rectOld.left + (ptMove.x - ptOld.x);
+			rectMove.top = rectOld.top + (ptMove.y - ptOld.y);
+			rectMove.right = rectMove.left + (rectOld.right - rectOld.left);
+			rectMove.bottom = rectMove.top + (rectOld.bottom - rectOld.top);
+
 			hDC = GetDC(hWnd);
-			SelectObject(hDC, GetStockObject(NULL_BRUSH));
-			SetROP2(hDC, R2_NOT);	      //防止重影
-			//根据draw状态判断鼠标移动过程中是否要画图
-			if (fDrawLine)
-			{
-				paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawRectangle)
-			{
-				Rectangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawEllipse)
-			{
-				Ellipse(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawRoundRect)
-			{
-				RoundRect(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY, pCurrentData->nEllipseWidth, pCurrentData->nEllipseHeight);
-			}
-			if (fDrawTriangle)
-			{
-				paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawSexangle)
-			{
-				paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawPentagram)
-			{
-				paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-		    //实时监听鼠标落点并不断更新
-			pCurrentData->ptEndX = LOWORD(lParam);
-			pCurrentData->ptEndY = HIWORD(lParam);
-			if (fDrawLine)
-			{
-				paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawRectangle)
-			{
-				Rectangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawEllipse)
-			{
-				Ellipse(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawRoundRect)
-			{
-				RoundRect(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY, pCurrentData->nEllipseWidth, pCurrentData->nEllipseHeight);
-			}
-			if (fDrawTriangle)
-			{
-				paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawSexangle)
-			{
-				paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			if (fDrawPentagram)
-			{
-				paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
-			}
-			ReleaseDC(hWnd, hDC);
-		}
-		break;
-	case WM_LBUTTONUP:
-		if (pCurrentData != NULL)                    //鼠标左键松开时关闭相应图形的权限
-		{
-			switch (pCurrentData->shape)          //图形选择
+			//-擦掉上一次的拖动的矩形轨迹
+			SelectObject(hDC, GetStockObject(WHITE_PEN));
+			SelectObject(hDC, GetStockObject(WHITE_BRUSH));
+			//Rectangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
+			switch (rectshape)
 			{
 			case 1:
-				fDrawLine = FALSE;
+				paint.DrawLine(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			case 2:
-				fDrawRectangle = FALSE;
+				Rectangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			case 3:
-				fDrawEllipse = FALSE;
+				Ellipse(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			case 4:
-				fDrawRoundRect = FALSE;
+				RoundRect(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom, 30, 30);
 				break;
 			case 5:
-				fDrawTriangle = FALSE;
+				paint.Triangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			case 6:
-				fDrawSexangle = FALSE;
+				paint.Sexangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			case 7:
-				fDrawPentagram = FALSE;
+				paint.Pentagram(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			}
-			pCurrentData->ptEndX = LOWORD(lParam);
-			pCurrentData->ptEndY = HIWORD(lParam);
-			InvalidateRect(hWnd, NULL, true);
-			datas.push_back(*pCurrentData);           //将数据传入vector容器，保存这一个图形
+			//画初始的矩形
+			SelectObject(hDC, GetStockObject(NULL_PEN));
+			SelectObject(hDC, GetStockObject(LTGRAY_BRUSH));
+			//Rectangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+			switch (rectshape)
+			{
+			case 1:
+				paint.DrawLine(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			case 2:
+				Rectangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			case 3:
+				Ellipse(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			case 4:
+				RoundRect(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom, 30, 30);
+				break;
+			case 5:
+				paint.Triangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			case 6:
+				paint.Sexangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			case 7:
+				paint.Pentagram(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
+				break;
+			}
+			//画本次移动的矩形轨迹
+			SelectObject(hDC, GetStockObject(BLACK_PEN));
+			SelectObject(hDC, GetStockObject(NULL_BRUSH));
+			//Rectangle(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+			switch (rectshape)
+			{
+			case 1:
+				paint.DrawLine(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			case 2:
+				Rectangle(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			case 3:
+				Ellipse(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			case 4:
+				RoundRect(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom, 30, 30);
+				break;
+			case 5:
+				paint.Triangle(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			case 6:
+				paint.Sexangle(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			case 7:
+				paint.Pentagram(hDC, rectMove.left, rectMove.top, rectMove.right, rectMove.bottom);
+				break;
+			}
+			CopyRect(&rectLast, &rectMove);
+		}
+		else
+		{
+			//如果处于画图状态
+			if (pCurrentData != NULL)
+			{
+				hDC = GetDC(hWnd);
+				SelectObject(hDC, GetStockObject(NULL_BRUSH));
+				SetROP2(hDC, R2_NOT);	      //防止重影
+											  //根据draw状态判断鼠标移动过程中是否要画图
+				if (fDrawLine)
+				{
+					paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawRectangle)
+				{
+					Rectangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawEllipse)
+				{
+					Ellipse(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawRoundRect)
+				{
+					RoundRect(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY, pCurrentData->nEllipseWidth, pCurrentData->nEllipseHeight);
+				}
+				if (fDrawTriangle)
+				{
+					paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawSexangle)
+				{
+					paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawPentagram)
+				{
+					paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				//实时监听鼠标落点并不断更新
+				pCurrentData->ptEndX = LOWORD(lParam);
+				pCurrentData->ptEndY = HIWORD(lParam);
+				if (fDrawLine)
+				{
+					paint.DrawLine(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawRectangle)
+				{
+					Rectangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawEllipse)
+				{
+					Ellipse(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawRoundRect)
+				{
+					RoundRect(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY, pCurrentData->nEllipseWidth, pCurrentData->nEllipseHeight);
+				}
+				if (fDrawTriangle)
+				{
+					paint.Triangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawSexangle)
+				{
+					paint.Sexangle(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				if (fDrawPentagram)
+				{
+					paint.Pentagram(hDC, pCurrentData->ptBeginX, pCurrentData->ptBeginY, pCurrentData->ptEndX, pCurrentData->ptEndY);
+				}
+				ReleaseDC(hWnd, hDC);
+			}
+		}
+		
+		break;
+	case WM_LBUTTONUP:
+		//确定鼠标释放位置
+		if (Move)
+		{
+			hDC = GetDC(hWnd);
+			Move = FALSE;
+			ptNew.x = LOWORD(lParam);
+			ptNew.y = HIWORD(lParam);
+			rectNew.left = rectOld.left + (ptNew.x - ptOld.x);
+			rectNew.top = rectOld.top + (ptNew.y - ptOld.y);
+			rectNew.right = rectNew.left + (rectOld.right - rectOld.left);
+			rectNew.bottom = rectNew.top + (rectOld.bottom - rectOld.top);
+
+			//移动后的坐标加入容器 
+			pCurrentData->ptBeginX = rectNew.left;
+			pCurrentData->ptBeginY = rectNew.top;
+			pCurrentData->ptEndX = rectNew.right;
+			pCurrentData->ptEndY = rectNew.bottom;
+			pCurrentData->shape = rectshape;
+			datas.push_back(*pCurrentData);
+			//删除移动前的图形数据
+			for (deletion = datas.begin(); deletion != datas.end(); deletion++)
+			{
+				if ((deletion->ptBeginX == rectOld.left) && (deletion->ptEndY == rectOld.bottom))
+				{
+					deletion = datas.erase(deletion);
+					break;
+				}
+			}
+			//被移动后的图形坐标 
+			  CopyRect(&rectOld,&rectNew);
+			InvalidateRect(hWnd, NULL, TRUE);
+			ReleaseDC(hWnd, hDC);
+		}
+		else
+		{
+			if (pCurrentData != NULL)                    //鼠标左键松开时关闭相应图形的权限
+			{
+				switch (pCurrentData->shape)          //图形选择
+				{
+				case 1:
+					fDrawLine = FALSE;
+					break;
+				case 2:
+					fDrawRectangle = FALSE;
+					break;
+				case 3:
+					fDrawEllipse = FALSE;
+					break;
+				case 4:
+					fDrawRoundRect = FALSE;
+					break;
+				case 5:
+					fDrawTriangle = FALSE;
+					break;
+				case 6:
+					fDrawSexangle = FALSE;
+					break;
+				case 7:
+					fDrawPentagram = FALSE;
+					break;
+				}
+				pCurrentData->ptEndX = LOWORD(lParam);
+				pCurrentData->ptEndY = HIWORD(lParam);
+				InvalidateRect(hWnd, NULL, true);
+				datas.push_back(*pCurrentData);           //将数据传入vector容器，保存这一个图形
+			}
 		}
 		break;
 	case WM_PAINT:                      //缓冲重绘
