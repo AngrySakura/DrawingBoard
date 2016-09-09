@@ -191,7 +191,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			hDC = GetDC(hWnd);
 			//-擦掉上一次的拖动的矩形轨迹
 			SelectObject(hDC, GetStockObject(WHITE_PEN));
-			SelectObject(hDC, GetStockObject(WHITE_BRUSH));
+			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			//Rectangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 			switch (rectshape)
 			{
@@ -217,9 +217,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				paint.Pentagram(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			}
-			//画初始的矩形
+	 	    //画初始的矩形
 			SelectObject(hDC, GetStockObject(NULL_PEN));
-			SelectObject(hDC, GetStockObject(LTGRAY_BRUSH));
+			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			//Rectangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
 			switch (rectshape)
 			{
@@ -346,7 +346,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				ReleaseDC(hWnd, hDC);
 			}
 		}
-		
 		break;
 	case WM_LBUTTONUP:
 		//确定鼠标释放位置
@@ -361,6 +360,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			rectNew.right = rectNew.left + (rectOld.right - rectOld.left);
 			rectNew.bottom = rectNew.top + (rectOld.bottom - rectOld.top);
 
+		//	rectOld.left = 0;rectOld.top = 0;rectOld.right = 0;rectOld.bottom = 0;
+			
 			//移动后的坐标加入容器 
 			pCurrentData->ptBeginX = rectNew.left;
 			pCurrentData->ptBeginY = rectNew.top;
