@@ -217,7 +217,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				paint.Pentagram(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 				break;
 			}
-	 	    //画初始的矩形
+/*==================================================================
+问题：无法解决图形移动过程中原图形闪烁问题
+==================================================================*/
+	/* 	    //画初始的矩形
 			SelectObject(hDC, GetStockObject(NULL_PEN));
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			//Rectangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
@@ -245,6 +248,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				paint.Pentagram(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
 				break;
 			}
+			*/
 			//画本次移动的矩形轨迹
 			SelectObject(hDC, GetStockObject(BLACK_PEN));
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
@@ -359,9 +363,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			rectNew.top = rectOld.top + (ptNew.y - ptOld.y);
 			rectNew.right = rectNew.left + (rectOld.right - rectOld.left);
 			rectNew.bottom = rectNew.top + (rectOld.bottom - rectOld.top);
-
-		//	rectOld.left = 0;rectOld.top = 0;rectOld.right = 0;rectOld.bottom = 0;
 			
+			//防止移动图形时上一个被移动的图形被擦去
+			rectLast.left = 0; rectLast.top = 0; rectLast.right = 0; rectLast.bottom = 0;
+
 			//移动后的坐标加入容器 
 			pCurrentData->ptBeginX = rectNew.left;
 			pCurrentData->ptBeginY = rectNew.top;
