@@ -193,8 +193,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			hDC = GetDC(hWnd);
 			//-擦掉上一次的拖动的矩形轨迹
-			SelectObject(hDC, GetStockObject(WHITE_PEN));
-			SelectObject(hDC, GetStockObject(WHITE_BRUSH));
+		//	SelectObject(hDC, GetStockObject(WHITE_PEN));
+			SetROP2(hDC, R2_NOT);
+			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			//Rectangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 			switch (rectshape)
 			{
