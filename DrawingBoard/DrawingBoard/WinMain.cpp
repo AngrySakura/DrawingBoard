@@ -32,7 +32,7 @@ BOOL fDrawPentagram;
 
 BOOL IsMove;    //判断是否需要移动图形
 BOOL Move;
-int movecount = 0;                       //通过该变量的奇偶性来记录点击移动菜单的次数,从而决定是否移动
+//BOOL isPaint;   //解决移动过程中黑影问题
 int rectshape = 0;
 
 /*-------------------------------------------------------------------
@@ -47,6 +47,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	vector<PAINTDATA>::iterator deletion;
 	static int penStyle = PS_SOLID;
 	static PAINTDATA *pCurrentData = NULL;   //指向当前PAINTDATA的指针
+	static PAINTDATA *pUpdateData = NULL;    //用于存储被移动后的图形
 	HDC hDC;
 	PAINTSTRUCT	ps;
 	static POINT ptOld, ptNew;
@@ -93,7 +94,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			IsMove = FALSE;
 			break;
 		case ID_MOVE:
-			if (movecount % 2 == 0)
+			InitShape();
+			IsMove = TRUE;
+	/*		if (movecount % 2 == 0)        
 			{
 				IsMove = TRUE;
 				movecount++;
@@ -102,7 +105,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				IsMove = FALSE;
 				movecount++;
-			}
+			}*/
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -125,7 +128,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		            Move = TRUE;
 		            break;
 		        }
-		        else
+		        else   //全都都匹配不到还有错误
 		        {
 		            Move = FALSE;
 		        }
@@ -191,7 +194,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			hDC = GetDC(hWnd);
 			//-擦掉上一次的拖动的矩形轨迹
 			SelectObject(hDC, GetStockObject(WHITE_PEN));
-			SelectObject(hDC, GetStockObject(NULL_BRUSH));
+			SelectObject(hDC, GetStockObject(WHITE_BRUSH));
 			//Rectangle(hDC, rectLast.left, rectLast.top, rectLast.right, rectLast.bottom);
 			switch (rectshape)
 			{
@@ -218,9 +221,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			}
 /*==================================================================
+原构想：移动图形时，在图形最初的位置用灰色画刷来显示
 问题：无法解决图形移动过程中原图形闪烁问题
-==================================================================*/
-	/* 	    //画初始的矩形
+猜想：移动过程中设置的画刷和 WM_PAINT的画刷冲突
+==================================================================
+		    //画初始的矩形
 			SelectObject(hDC, GetStockObject(NULL_PEN));
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
 			//Rectangle(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
@@ -248,7 +253,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				paint.Pentagram(hDC, rectOld.left, rectOld.top, rectOld.right, rectOld.bottom);
 				break;
 			}
-			*/
+*/		
 			//画本次移动的矩形轨迹
 			SelectObject(hDC, GetStockObject(BLACK_PEN));
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
@@ -368,12 +373,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			rectLast.left = 0; rectLast.top = 0; rectLast.right = 0; rectLast.bottom = 0;
 
 			//移动后的坐标加入容器 
-			pCurrentData->ptBeginX = rectNew.left;
-			pCurrentData->ptBeginY = rectNew.top;
-			pCurrentData->ptEndX = rectNew.right;
-			pCurrentData->ptEndY = rectNew.bottom;
-			pCurrentData->shape = rectshape;
-			datas.push_back(*pCurrentData);
+			pUpdateData = new PAINTDATA;
+			pUpdateData->ptBeginX = rectNew.left;
+			pUpdateData->ptBeginY = rectNew.top;
+			pUpdateData->ptEndX = rectNew.right;
+			pUpdateData->ptEndY = rectNew.bottom;
+			pUpdateData->shape = rectshape;
+			datas.push_back(*pUpdateData);
+			delete(pUpdateData);
 			//删除移动前的图形数据
 			for (deletion = datas.begin(); deletion != datas.end(); deletion++)
 			{
@@ -384,11 +391,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			//被移动后的图形坐标 
-			  CopyRect(&rectOld,&rectNew);
+			CopyRect(&rectOld,&rectNew);
 			InvalidateRect(hWnd, NULL, TRUE);
 			ReleaseDC(hWnd, hDC);
 		}
-		else
+		else 
 		{
 			if (pCurrentData != NULL)                    //鼠标左键松开时关闭相应图形的权限
 			{
@@ -420,6 +427,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				pCurrentData->ptEndY = HIWORD(lParam);
 				InvalidateRect(hWnd, NULL, true);
 				datas.push_back(*pCurrentData);           //将数据传入vector容器，保存这一个图形
+				delete(pCurrentData);        pCurrentData = NULL;
 			}
 		}
 		break;
@@ -430,6 +438,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			hDC = GetDC(hWnd);
 			SelectObject(hDC, GetStockObject(NULL_BRUSH));
+			//SelectObject(hDC, GetStockObject(BLACK_PEN));
 			SetROP2(hDC, R2_BLACK);
 			switch (item->shape)    //图形选择
 			{
@@ -498,7 +507,7 @@ int WINAPI WinMain(
 	//创建窗口
 	hWnd = CreateWindow(
 		L"SHAPE",
-		L"SHAPE",
+		L"DrawingBoard",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0,
 		NULL,
